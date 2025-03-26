@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "amqplib": "^0.10.5",
-    "express": "^4.21.2",
-    "fastify": "^5.2.1"
+    "fastify": "^5.2.1",
+    "pm2": "^6.0.5"
   }
 }
