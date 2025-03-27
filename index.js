@@ -15,6 +15,7 @@ fastify.addHook('preHandler', async (request, reply) => {
     }
 });
 
+console.log("Connecting to RabbitMQ at amqp://" + RabbitMQIP);
 // Connect to RabbitMQ
 amqp.connect(`amqp://${RabbitMQIP}`, function (error0, connection) {
     if (error0) throw error0;
