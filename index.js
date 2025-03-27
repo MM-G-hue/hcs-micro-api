@@ -13,22 +13,22 @@ fastify.addHook('preHandler', async (request, reply) => {
     }
 });
 
-// Connect to RabbitMQ
-amqp.connect('amqp://localhost', function (error0, connection) {
-    if (error0) throw error0;
+// // Connect to RabbitMQ
+// amqp.connect('amqp://localhost', function (error0, connection) {
+//     if (error0) throw error0;
 
-    connection.createChannel(function (error1, channel) {
-        if (error1) throw error1;
+//     connection.createChannel(function (error1, channel) {
+//         if (error1) throw error1;
         
-        channel.assertQueue(queueName, {
-            durable: false
-            // durable: true // Durable protects against message loss if RabbitMQ server crashes
-        });
+//         channel.assertQueue(queueName, {
+//             durable: false
+//             // durable: true // Durable protects against message loss if RabbitMQ server crashes
+//         });
         
-        rabbitmqChannel = channel;
-        fastify.log.info(" [*] RabbitMQ connection established");
-    });
-});
+//         rabbitmqChannel = channel;
+//         fastify.log.info(" [*] RabbitMQ connection established");
+//     });
+// });
 
 // API endpoint
 fastify.post('/message', async (request, reply) => {
@@ -39,7 +39,7 @@ fastify.post('/message', async (request, reply) => {
     }
 
     try {
-        rabbitmqChannel.sendToQueue(queueName, Buffer.from(message));
+        // rabbitmqChannel.sendToQueue(queueName, Buffer.from(message));
         // rabbitmqChannel.sendToQueue(queueName, Buffer.from(message), {persistent: true}); // Durable message
         return { status: 'Message sent successfully' };
     } catch (error) {
