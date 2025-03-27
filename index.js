@@ -1,12 +1,14 @@
 const fastify = require('fastify')({ logger: true });
 const amqp = require('amqplib/callback_api');
 
-const queueName = 'hello';
+
 const API_KEYS = ['key1', 'key2', 'key3']; // Fake API keys
 require('dotenv').config();
 const RabbitMQIP = process.env.RABBITMQ_IP;
-const username = process.env.RABBITMQ_USERNAME;
-const password = process.env.RABBITMQ_PASSWORD;
+const RabbitMQQueueName = process.env.RABBITMQ_QUEUE_NAME;
+const RabbitMQDurable = process.env.RABBITMQ_DURABLE;
+const RabbitMQUsername = process.env.RABBITMQ_USERNAME;
+const RabbitMQPassword = process.env.RABBITMQ_PASSWORD;
 let rabbitmqChannel = null;
 
 // Authentication hook
@@ -19,15 +21,14 @@ fastify.addHook('preHandler', async (request, reply) => {
 
 console.log("Connecting to RabbitMQ at amqp://" + RabbitMQIP);
 // Connect to RabbitMQ
-amqp.connect(`amqp://${username}:${password}@${RabbitMQIP}`, function (error0, connection) {
+amqp.connect(`amqp://${RabbitMQUsername}:${RabbitMQPassword}@${RabbitMQIP}`, function (error0, connection) {
     if (error0) throw error0;
 
     connection.createChannel(function (error1, channel) {
         if (error1) throw error1;
         
-        channel.assertQueue(queueName, {
-            durable: false
-            // durable: true // Durable protects against message loss if RabbitMQ server crashes
+        channel.assertQueue(RabbitMQQueueName, {
+            durable: RabbitMQDurable
         });
         
         rabbitmqChannel = channel;
@@ -48,8 +49,7 @@ fastify.post('/message', async (request, reply) => {
     }
 
     try {
-        // rabbitmqChannel.sendToQueue(queueName, Buffer.from(message));
-        rabbitmqChannel.sendToQueue(queueName, Buffer.from(message), {persistent: true}); // Durable message
+        rabbitmqChannel.sendToQueue(queueName, Buffer.from(message), {persistent: RabbitMQDurable}); // Durable message
         return { status: 'Message sent successfully' };
     } catch (error) {
         throw { statusCode: 500, message: 'Failed to send message' };
