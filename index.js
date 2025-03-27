@@ -3,6 +3,7 @@ const amqp = require('amqplib/callback_api');
 
 const queueName = 'hello';
 const API_KEYS = ['key1', 'key2', 'key3']; // Fake API keys
+const RabbitMQIP = "10.0.1.172"
 let rabbitmqChannel = null;
 
 // Authentication hook
@@ -13,25 +14,29 @@ fastify.addHook('preHandler', async (request, reply) => {
     }
 });
 
-// // Connect to RabbitMQ
-// amqp.connect('amqp://localhost', function (error0, connection) {
-//     if (error0) throw error0;
+// Connect to RabbitMQ
+amqp.connect(`amqp://${RabbitMQIP}`, function (error0, connection) {
+    if (error0) throw error0;
 
-//     connection.createChannel(function (error1, channel) {
-//         if (error1) throw error1;
+    connection.createChannel(function (error1, channel) {
+        if (error1) throw error1;
         
-//         channel.assertQueue(queueName, {
-//             durable: false
-//             // durable: true // Durable protects against message loss if RabbitMQ server crashes
-//         });
+        channel.assertQueue(queueName, {
+            durable: false
+            // durable: true // Durable protects against message loss if RabbitMQ server crashes
+        });
         
-//         rabbitmqChannel = channel;
-//         fastify.log.info(" [*] RabbitMQ connection established");
-//     });
-// });
+        rabbitmqChannel = channel;
+        fastify.log.info(" [*] RabbitMQ connection established");
+    });
+});
 
 // API endpoint
 fastify.post('/message', async (request, reply) => {
+    if (!request.body) {
+        throw { statusCode: 400, message: 'Invalid request body' };
+    }
+
     const { message } = request.body;
     
     if (!message) {
@@ -40,7 +45,7 @@ fastify.post('/message', async (request, reply) => {
 
     try {
         // rabbitmqChannel.sendToQueue(queueName, Buffer.from(message));
-        // rabbitmqChannel.sendToQueue(queueName, Buffer.from(message), {persistent: true}); // Durable message
+        rabbitmqChannel.sendToQueue(queueName, Buffer.from(message), {persistent: true}); // Durable message
         return { status: 'Message sent successfully' };
     } catch (error) {
         throw { statusCode: 500, message: 'Failed to send message' };
