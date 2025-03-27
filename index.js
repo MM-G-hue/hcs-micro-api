@@ -2,7 +2,7 @@ const fastify = require('fastify')({ logger: true });
 const amqp = require('amqplib/callback_api');
 
 
-const API_KEYS = ['key1', 'key2', 'key3']; // Fake API keys
+const API_KEYS = [process.env.TEMP_API_KEY]; // Fake API keys
 require('dotenv').config();
 const RabbitMQIP = process.env.RABBITMQ_IP;
 const RabbitMQQueueName = process.env.RABBITMQ_QUEUE_NAME;
