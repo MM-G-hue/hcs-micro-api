@@ -3,7 +3,8 @@ const amqp = require('amqplib/callback_api');
 
 const queueName = 'hello';
 const API_KEYS = ['key1', 'key2', 'key3']; // Fake API keys
-const RabbitMQIP = "10.0.1.172"
+require('dotenv').config();
+const RabbitMQIP = process.env.RABBITMQ_IP;
 let rabbitmqChannel = null;
 
 // Authentication hook

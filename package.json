@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "amqplib": "^0.10.5",
+    "dotenv": "^16.4.7",
     "fastify": "^5.2.1",
     "pm2": "^6.0.5"
   }
