@@ -3,8 +3,9 @@ const amqp = require('amqplib/callback_api');
 
 const queueName = 'hello';
 const API_KEYS = ['key1', 'key2', 'key3']; // Fake API keys
-require('dotenv').config();
 const RabbitMQIP = process.env.RABBITMQ_IP;
+const username = process.env.RABBITMQ_USERNAME;
+const password = process.env.RABBITMQ_PASSWORD;
 let rabbitmqChannel = null;
 
 // Authentication hook
@@ -17,7 +18,7 @@ fastify.addHook('preHandler', async (request, reply) => {
 
 console.log("Connecting to RabbitMQ at amqp://" + RabbitMQIP);
 // Connect to RabbitMQ
-amqp.connect(`amqp://${RabbitMQIP}`, function (error0, connection) {
+amqp.connect(`amqp://${username}:${password}@${RabbitMQIP}`, function (error0, connection) {
     if (error0) throw error0;
 
     connection.createChannel(function (error1, channel) {
