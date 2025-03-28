@@ -1,4 +1,3 @@
-const fastify = require('fastify')({ logger: true });
 const amqp = require('amqplib/callback_api');
 
 require('dotenv').config();
@@ -8,6 +7,9 @@ const RabbitMQQueueName = process.env.RABBITMQ_QUEUE_NAME;
 const RabbitMQDurable = process.env.RABBITMQ_DURABLE;
 const RabbitMQUsername = process.env.RABBITMQ_USERNAME;
 const RabbitMQPassword = process.env.RABBITMQ_PASSWORD;
+
+const fastify = require('fastify')({ logger: process.env.SERVER_LOGGING });
+
 let rabbitmqChannel = null;
 
 // Authentication hook
@@ -48,7 +50,7 @@ fastify.post('/message', async (request, reply) => {
     }
 
     try {
-        rabbitmqChannel.sendToQueue(queueName, Buffer.from(message), {persistent: RabbitMQDurable}); // Durable message
+        rabbitmqChannel.sendToQueue(RabbitMQQueueName, Buffer.from(message), {persistent: RabbitMQDurable}); // Durable message
         return { status: 'Message sent successfully' };
     } catch (error) {
         throw { statusCode: 500, message: 'Failed to send message' };
