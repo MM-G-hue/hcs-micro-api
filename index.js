@@ -43,10 +43,10 @@ fastify.post('/message', async (request, reply) => {
         throw { statusCode: 400, message: 'Invalid request body' };
     }
 
-    const { message } = request.body;
+    const message = request.body;
     
     if (!message) {
-        throw { statusCode: 400, message: 'Message is required' };
+        throw { statusCode: 400, message: 'Body is required' };
     }
 
     try {
