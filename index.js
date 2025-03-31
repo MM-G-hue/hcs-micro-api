@@ -7,8 +7,9 @@ const RabbitMQQueueName = process.env.RABBITMQ_QUEUE_NAME;
 const RabbitMQDurable = process.env.RABBITMQ_DURABLE;
 const RabbitMQUsername = process.env.RABBITMQ_USERNAME;
 const RabbitMQPassword = process.env.RABBITMQ_PASSWORD;
+const serverLogging = process.env.SERVER_LOGGING == true;
 
-const fastify = require('fastify')({ logger: process.env.SERVER_LOGGING });
+const fastify = require('fastify')({ logger: serverLogging });
 
 let rabbitmqChannel = null;
 
