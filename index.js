@@ -80,7 +80,7 @@ fastify.post('/message', async (request, reply) => {
         throw { statusCode: 400, message: 'Invalid request body' };
     }
 
-    const message = JSON.stringify(request.body);
+    const message = request.body;
 
     if (!rabbitmqChannel) {
         console.error("RabbitMQ Channel is not available");
