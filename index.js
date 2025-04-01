@@ -1,3 +1,6 @@
+const fs = require('fs');
+const path = require('path');
+
 const amqp = require('amqplib/callback_api');
 require('dotenv').config();
 
@@ -105,5 +108,28 @@ const start = async () => {
         process.exit(1);
     }
 };
+
+function logMemoryUsage(interval = 5000, filename = 'memory_log_api.csv') {
+    const filePath = path.join(__dirname, filename);
+    const headers = 'Timestamp,RSS (bytes),Heap Total (bytes),Heap Used (bytes),External (bytes),Array Buffers (bytes)\n';
+    
+    // Write headers if file doesn't exist
+    if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, headers);
+    }
+
+    setInterval(() => {
+        const mem = process.memoryUsage();
+        const timestamp = new Date().toISOString();
+        const data = `${timestamp},${mem.rss},${mem.heapTotal},${mem.heapUsed},${mem.external},${mem.arrayBuffers}\n`;
+        
+        fs.appendFile(filePath, data, (err) => {
+            if (err) console.error('Error writing to log file:', err);
+        });
+    }, interval);
+}
+
+logMemoryUsage(); // Logs memory every 5 seconds
+
 
 start();
