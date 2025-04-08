@@ -103,7 +103,6 @@ redisPubSub.subscribe(redisApiKeyChannelName, (err, count) => {
 redisPubSub.on('message', (channel, message) => {
     if (channel === redisApiKeyChannelName) {
         const { action, apiKey } = JSON.parse(message);
-        console.log(JSON.parse(message));
         if (action === 'add') {
             localApiKeys.add(apiKey);
             console.log(`API key added: ${apiKey}`);
