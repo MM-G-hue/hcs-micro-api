@@ -16,11 +16,11 @@ const redisApiKeySetName = process.env.REDIS_API_KEY_SET_NAME || 'api_keys';
 const redisApiKeyChannelName = process.env.REDIS_API_KEY_CHANNEL_NAME || 'api-keys-channel';
 
 const fastify = require('fastify')({ logger: serverLogging });
-const redis = new Redis({
-    host: redisIP,
-    port: redisPort,
-    password: redisPassword,
-});
+
+// Redis client for Pub/Sub (subscribe to channels). Pub/Sub channels can not do data commands
+const redisPubSub = new Redis({ host: redisIP, port: redisPort, password: redisPassword});
+// Redis client for data commands (e.g., smembers, sismember, etc.)
+const redisData = new Redis({ host: redisIP, port: redisPort, password: redisPassword });
 
 let rabbitmqChannel = null;
 let rabbitmqConnection = null;
@@ -82,7 +82,7 @@ connectToRabbitMQ();
 async function refreshApiKeys() {
     try {
         console.log("Refreshing API keys from Redis...");
-        const keys = await redis.smembers(redisApiKeySetName);  // Get all keys from Redis
+        const keys = await redisData.smembers(redisApiKeySetName);  // Get all keys from Redis
         localApiKeys = new Set(keys);  // Replace local cache
         console.log(`Loaded ${keys.length} API keys.`);
     } catch (error) {
@@ -91,7 +91,7 @@ async function refreshApiKeys() {
 }
 
 // Subscribe to Redis Pub/Sub for real-time updates
-redis.subscribe(redisApiKeyChannelName, (err, count) => {
+redisPubSub.subscribe(redisApiKeyChannelName, (err, count) => {
     if (err) {
         console.error("Error subscribing to Redis channel:", err);
         return;
@@ -100,7 +100,7 @@ redis.subscribe(redisApiKeyChannelName, (err, count) => {
 });
 
 // Handle Pub/Sub messages to update local memory in real-time
-redis.on('message', (channel, message) => {
+redisPubSub.on('message', (channel, message) => {
     if (channel === redisApiKeyChannelName) {
         const { action, apiKey } = JSON.parse(message);
         if (action === 'add') {
@@ -131,7 +131,7 @@ fastify.addHook('preHandler', async (request, reply) => {
     }
 
     // If not found in memory, fallback to Redis (rare case)
-    const existsInRedis = await redis.sismember(redisApiKeySetName, apiKey);
+    const existsInRedis = await redisData.sismember(redisApiKeySetName, apiKey);
     if (existsInRedis) {
         localApiKeys.add(apiKey);  // Re-add to cache
         return;
