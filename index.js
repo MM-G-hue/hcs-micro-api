@@ -17,6 +17,8 @@ const redisApiKeyChannelName = process.env.REDIS_API_KEY_CHANNEL_NAME || 'api-ke
 
 const fastify = require('fastify')({ logger: serverLogging });
 
+// By default, ioredis will try to reconnect when the connection to Redis is lost except when the connection is closed manually 
+// https://github.com/redis/ioredis?tab=readme-ov-file#auto-reconnect
 // Redis client for Pub/Sub (subscribe to channels). Pub/Sub channels can not do data commands
 const redisPubSub = new Redis({ host: redisIP, port: redisPort, password: redisPassword});
 // Redis client for data commands (e.g., smembers, sismember, etc.)
@@ -81,12 +83,11 @@ connectToRabbitMQ();
 // Function to fully sync API keys from Redis every x seconds (Failsafe)
 async function refreshApiKeys() {
     try {
-        console.log("Refreshing API keys from Redis...");
         const keys = await redisData.smembers(redisApiKeySetName);  // Get all keys from Redis
         localApiKeys = new Set(keys);  // Replace local cache
-        console.log(`Loaded ${keys.length} API keys.`);
+        console.log(`Loaded ${keys.length} API keys from redis.`);
     } catch (error) {
-        console.error("Error refreshing API keys:", error);
+        console.error("Error refreshing API keys from redis:", error);
     }
 }
 
@@ -96,7 +97,7 @@ redisPubSub.subscribe(redisApiKeyChannelName, (err, count) => {
         console.error("Error subscribing to Redis channel:", err);
         return;
     }
-    console.log(`Subscribed to ${count} channel(s)`);
+    console.log(`Subscribed to ${count} redis pub/sub channel(s)`);
 });
 
 // Handle Pub/Sub messages to update local memory in real-time
