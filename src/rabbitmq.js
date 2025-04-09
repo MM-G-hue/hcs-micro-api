@@ -20,6 +20,8 @@ function connectToRabbitMQ(callback) {
             return;
         }
 
+        console.log("RabbitMQ Connection Established");
+
         connection.on("error", err => {
             console.error("RabbitMQ Connection Error:", err.message);
             if (err.message !== "Connection closing") {
@@ -32,14 +34,14 @@ function connectToRabbitMQ(callback) {
             setTimeout(() => connectToRabbitMQ(callback), 5000);
         });
 
-        console.log("Connected to RabbitMQ");
-
+        console.log("Calling createChannel...");
         connection.createChannel((error, channel) => {
             if (error) {
                 console.error("RabbitMQ Channel Creation Error:", error.message);
                 return;
             }
 
+            console.log("RabbitMQ Channel Created");
             channel.assertQueue(RabbitMQQueueName, { durable: RabbitMQDurable });
             rabbitmqChannel = channel;
             rabbitmqConnection = connection;
