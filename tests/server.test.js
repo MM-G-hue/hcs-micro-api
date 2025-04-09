@@ -12,8 +12,8 @@ describe('Fastify Server', () => {
         // Mock Redis API key validation
         jest.spyOn(redisData, 'sismember').mockResolvedValue(1);
 
-        // Ensure RabbitMQ mock methods are being called
-        jest.spyOn(amqplib, 'connect');
+        // // Ensure RabbitMQ mock methods are being called
+        // jest.spyOn(amqplib, 'connect');
 
         // Start server
         fastify = buildServer();
@@ -35,7 +35,24 @@ describe('Fastify Server', () => {
         expect(response.json()).toEqual({ message: 'Missing API key' });
     });
 
+    test('Rejects request with invalid API key', async () => {
+        // Mock Redis API key fail
+        jest.spyOn(redisData, 'sismember').mockResolvedValue(0);
+
+        const response = await fastify.inject({
+            method: 'POST',
+            url: '/message',
+            payload: { message: 'Test' },
+        });
+
+        expect(response.statusCode).toBe(401);
+        expect(response.json()).toEqual({ message: 'Missing API key' });
+    });
+
     test('Accepts request with valid API key', async () => {
+        // Mock Redis API key fail
+        jest.spyOn(redisData, 'sismember').mockResolvedValue(0);
+
         const response = await fastify.inject({
             method: 'POST',
             url: '/message',
