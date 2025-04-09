@@ -8,7 +8,7 @@ const serverLogging = process.env.SERVER_LOGGING === 'true';
 function buildServer() {
     const app = fastify({ logger: serverLogging });
     let rabbitmqChannel = null;
-    let localApiKeys = new Set();
+    const localApiKeys = new Set();
 
     function connectRabbitMQ() {
         connectToRabbitMQ((error, result) => {
@@ -48,6 +48,13 @@ function buildServer() {
         }
     });
 
+    // Disallow all GET requests
+    app.addHook('onRequest', async (request, reply) => {
+        if (request.method === 'GET') {
+            reply.code(405).send({ message: 'Method Not Allowed' });
+        }
+    });
+
     // Authentication hook
     app.addHook('preHandler', async (request, reply) => {
         const apiKey = request.headers['x-api-key'];
@@ -58,12 +65,17 @@ function buildServer() {
 
         if (localApiKeys.has(apiKey)) return;
 
-        const existsInRedis = await redisData.sismember(redisApiKeySetName, apiKey);
-        if (existsInRedis) {
-            localApiKeys.add(apiKey);
-            return;
+        try {
+            const existsInRedis = await redisData.sismember(redisApiKeySetName, apiKey);
+            if (existsInRedis) {
+                localApiKeys.add(apiKey);
+                return;
+            }
+        } catch (error) {
+            console.error("Redis connection error:", error.message);
+            reply.code(500).send({ message: 'Redis Connection Error' });
         }
-
+ 
         reply.code(401).send({ message: 'Invalid API key' });
     });
 
@@ -71,7 +83,12 @@ function buildServer() {
     app.post('/message', async (request, reply) => {
         if (!rabbitmqChannel) {
             console.error("RabbitMQ Channel is not available");
-            throw { statusCode: 503, message: 'RabbitMQ is not available, try again later' };
+            reply.code(503).send({ message: 'RabbitMQ is not available, try again later' });
+        }
+
+        if (!request.body) {
+            reply.code(400).send({ message: 'Message payload is required' });
+            return;
         }
 
         try {
@@ -79,7 +96,7 @@ function buildServer() {
             return { status: 'Message sent successfully' };
         } catch (error) {
             console.error("Failed to send message:", error.message);
-            throw { statusCode: 500, message: 'Failed to send message' };
+            reply.code(500).send({ message: 'Failed to send message' });
         }
     });
 
