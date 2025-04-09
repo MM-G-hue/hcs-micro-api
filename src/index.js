@@ -2,8 +2,11 @@ const fastify = require('fastify');
 const { redisPubSub, redisData, refreshApiKeys, closeRedisConnections, redisApiKeySetName, redisApiKeyChannelName } = require('./redis');
 const { connectToRabbitMQ, closeRabbitMQ, RabbitMQQueueName, RabbitMQDurable } = require('./rabbitmq');
 
+require('dotenv').config();
+const serverLogging = process.env.SERVER_LOGGING === 'true';
+
 function buildServer() {
-    const app = fastify({ logger: true });
+    const app = fastify({ logger: serverLogging });
     let rabbitmqChannel = null;
     let localApiKeys = new Set();
 
