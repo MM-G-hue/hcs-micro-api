@@ -1,7 +1,7 @@
 const mockChannel = {
     assertQueue: jest.fn().mockResolvedValue(),
     sendToQueue: jest.fn().mockImplementation((queue, message, options) => {
-        console.log(`Message sent to ${queue}:`, message.toString());
+        // console.log(`Message sent to ${queue}:`, message.toString());
     }),
     close: jest.fn().mockResolvedValue(),
 };

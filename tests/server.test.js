@@ -30,8 +30,9 @@ describe('Fastify Server', () => {
     test('Rejects request with missing API key', async () => {
         const response = await fastify.inject({
             method: 'POST',
-            url: '/message',
-            payload: { message: 'Test' },
+            url: '/data',
+            payload: 'Test',
+            headers: { 'Content-Type': 'text/plain' },
         });
 
         expect(response.statusCode).toBe(401);
@@ -44,8 +45,9 @@ describe('Fastify Server', () => {
 
         const response = await fastify.inject({
             method: 'POST',
-            url: '/message',
-            payload: { message: 'Test' },
+            url: '/data',
+            payload: 'Test',
+            headers: { 'Content-Type': 'text/plain' },
         });
 
         expect(response.statusCode).toBe(401);
@@ -53,14 +55,13 @@ describe('Fastify Server', () => {
     });
 
     test('Accepts request with valid API key', async () => {
-        // Mock Redis API key fail
         jest.spyOn(redisData, 'sismember').mockResolvedValue(1);
 
         const response = await fastify.inject({
             method: 'POST',
-            url: '/message',
-            headers: { 'x-api-key': 'valid-api-key' },
-            payload: { message: 'Hello' },
+            url: '/data',
+            headers: { 'x-api-key': 'valid-api-key', 'Content-Type': 'text/plain' },
+            payload: 'Test',
         });
 
         expect(response.statusCode).toBe(200);
@@ -70,12 +71,64 @@ describe('Fastify Server', () => {
     test('Handles missing message payload', async () => {
         const response = await fastify.inject({
             method: 'POST',
-            url: '/message',
-            headers: { 'x-api-key': 'valid-api-key' },
+            url: '/data',
+            headers: { 'x-api-key': 'valid-api-key', 'Content-Type': 'text/plain' },
         });
 
         expect(response.statusCode).toBe(400);
         expect(response.json()).toEqual({ message: 'Message payload is required' });
+    });
+
+    
+    test('Handles unsupported HTTP methods', async () => {
+        const response = await fastify.inject({
+            method: 'GET',
+            url: '/data',
+            headers: { 'x-api-key': 'valid-api-key', 'Content-Type': 'text/plain' },
+            payload: 'Test',
+        });
+
+        expect(response.statusCode).toBe(405);
+        expect(response.json()).toEqual({ message: 'Method Not Allowed' });
+    });
+
+    test('Rejects request with empty API key', async () => {
+        const response = await fastify.inject({
+            method: 'POST',
+            url: '/data',
+            headers: { 'x-api-key': '', 'Content-Type': 'text/plain' },
+            payload: 'Test',
+        });
+
+        expect(response.statusCode).toBe(401);
+        expect(response.json()).toEqual({ message: 'Missing API key' });
+    });
+
+    test('Rejects request with too large payload', async () => {
+        const largePayload = 'x'.repeat(10001);
+        const response = await fastify.inject({
+            method: 'POST',
+            url: '/data',
+            headers: { 'x-api-key': 'valid-api-key', 'Content-Type': 'text/plain' },
+            payload: largePayload,
+        });
+
+        expect(response.statusCode).toBe(413);
+        expect(response.json()).toEqual({ message: 'Payload too large' });
+    });
+
+    test('Handles unsupported content type', async () => {
+        jest.spyOn(redisData, 'sismember').mockResolvedValue(1);
+
+        const response = await fastify.inject({
+            method: 'POST',
+            url: '/data',
+            headers: { 'x-api-key': 'valid-api-key', 'Content-Type': 'text/json' },
+            payload: 'Test',
+        });
+
+        expect(response.statusCode).toBe(415);
+        expect(response.json()).toEqual({ message: 'Unsupported Media Type' });
     });
 
     test('Handles Redis connection failure', async () => {
@@ -83,9 +136,9 @@ describe('Fastify Server', () => {
 
         const response = await fastify.inject({
             method: 'POST',
-            url: '/message',
-            headers: { 'x-api-key': 'valid-api-key' },
-            payload: { message: 'Test Message' },
+            url: '/data',
+            headers: { 'x-api-key': 'valid-api-key', 'Content-Type': 'text/plain' },
+            payload: 'Test',
         });
 
         expect(response.statusCode).toBe(500);
@@ -106,23 +159,12 @@ describe('Fastify Server', () => {
 
         const response = await fastify.inject({
             method: 'POST',
-            url: '/message',
-            headers: { 'x-api-key': 'valid-api-key' },
-            payload: { message: 'Test Message rabbitMQ' },
+            url: '/data',
+            headers: { 'x-api-key': 'valid-api-key', 'Content-Type': 'text/plain' },
+            payload: 'Test',
         });
 
         expect(response.statusCode).toBe(503);
         expect(response.json()).toEqual({ message: 'RabbitMQ is not available, try again later' });
-    });
-
-    test('Handles unsupported HTTP methods', async () => {
-        const response = await fastify.inject({
-            method: 'GET',
-            url: '/message',
-            headers: { 'x-api-key': 'valid-api-key' },
-        });
-
-        expect(response.statusCode).toBe(405);
-        expect(response.json()).toEqual({ message: 'Method Not Allowed' });
     });
 });

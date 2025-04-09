@@ -4,12 +4,14 @@ const { connectToRabbitMQ, closeRabbitMQ, RabbitMQQueueName, RabbitMQDurable } =
 
 require('dotenv').config();
 const serverLogging = process.env.SERVER_LOGGING === 'true';
+const maxPayload = process.env.MAX_PAYLOAD_LENGTH || 10000;
 
 function buildServer() {
     const app = fastify({ logger: serverLogging });
     let rabbitmqChannel = null;
     const localApiKeys = new Set();
 
+    // The RabbitMQ connection will automatically reconnect on failure
     function connectRabbitMQ() {
         connectToRabbitMQ((error, result) => {
             if (error) {
@@ -35,6 +37,7 @@ function buildServer() {
         console.log(`Subscribed to ${count} Redis pub/sub channel(s)`);
     });
 
+    // Live updates from Redis
     redisPubSub.on('message', (channel, message) => {
         if (channel === redisApiKeyChannelName) {
             const { action, apiKey } = JSON.parse(message);
@@ -53,12 +56,15 @@ function buildServer() {
         if (request.method === 'GET') {
             reply.code(405).send({ message: 'Method Not Allowed' });
         }
+        if (request.headers['content-type'] !== 'text/plain') {
+            reply.code(415).send({ message: 'Unsupported Media Type' });
+        }
     });
 
     // Authentication hook
     app.addHook('preHandler', async (request, reply) => {
         const apiKey = request.headers['x-api-key'];
-        if (!apiKey) {
+        if (!apiKey || apiKey.length === 0) {
             reply.code(401).send({ message: 'Missing API key' });
             return;
         }
@@ -80,7 +86,7 @@ function buildServer() {
     });
 
     // API endpoint
-    app.post('/message', async (request, reply) => {
+    app.post('/data', async (request, reply) => {
         if (!rabbitmqChannel) {
             console.error("RabbitMQ Channel is not available");
             reply.code(503).send({ message: 'RabbitMQ is not available, try again later' });
@@ -88,6 +94,12 @@ function buildServer() {
 
         if (!request.body) {
             reply.code(400).send({ message: 'Message payload is required' });
+            return;
+        }
+
+        // If needed, check for too large payload
+        if (request.body.length > maxPayload) {
+            reply.code(413).send({ message: 'Payload too large' });
             return;
         }
 
