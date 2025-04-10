@@ -106,7 +106,7 @@ function buildServer() {
         }
 
         try {
-            rabbitmqChannel.sendToQueue(RabbitMQQueueName, Buffer.from(JSON.stringify(request.body)), { persistent: RabbitMQDurable });
+            rabbitmqChannel.sendToQueue(RabbitMQQueueName, Buffer.from(request.body), { persistent: RabbitMQDurable });
             return { status: 'Message sent successfully' };
         } catch (error) {
             console.error("Failed to send message:", error.message);
