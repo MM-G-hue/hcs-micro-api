@@ -1,6 +1,6 @@
 module.exports = {
     moduleNameMapper: {
-        "^ioredis$": "<rootDir>/__mocks__/ioredis.js",
-        "^amqplib/callback_api$": "<rootDir>/__mocks__/amqplib.js",
+        "^ioredis$": "<rootDir>/test/__mocks__/ioredis.js",
+        "^amqplib/callback_api$": "<rootDir>/test/__mocks__/amqplib.js",
     },
 };

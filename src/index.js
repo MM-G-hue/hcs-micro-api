@@ -69,8 +69,10 @@ function buildServer() {
             return;
         }
 
+        // First, check if key is in the local cache (refreshed every minute)
         if (localApiKeys.has(apiKey)) return;
 
+        // Second, check if key is in Redis
         try {
             const existsInRedis = await redisData.sismember(redisApiKeySetName, apiKey);
             if (existsInRedis) {

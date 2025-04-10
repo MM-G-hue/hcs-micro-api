@@ -1,8 +1,8 @@
 jest.mock('ioredis');
-jest.mock('amqplib'); // Ensure this is called before importing anything that uses amqplib
+jest.mock('amqplib');
 
 const { buildServer } = require('../src/index.js');
-const { redisData } = require('../src/redis'); // Import redisData
+const { redisData } = require('../src/redis.js');
 const amqplib = require('amqplib'); // Import the mocked amqplib
 
 describe('Fastify Server', () => {
