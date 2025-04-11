@@ -18,7 +18,6 @@ describe('Fastify Server', () => {
     });
 
     beforeEach(async () => {
-        // fastify.clearApiKeys();
         fastify = buildServer();
         await fastify.ready();
     });

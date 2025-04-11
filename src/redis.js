@@ -11,17 +11,6 @@ const redisApiKeyChannelName = process.env.REDIS_API_KEY_CHANNEL_NAME || 'api-ke
 const redisPubSub = new Redis({ host: redisIP, port: redisPort, password: redisPassword });
 const redisData = new Redis({ host: redisIP, port: redisPort, password: redisPassword });
 
-async function refreshApiKeys(localApiKeys) {
-    try {
-        const keys = await redisData.smembers(redisApiKeySetName);
-        // Instead of deleting old keys and inserting new, just replace the entire set
-        localApiKeys = new Set(keys);
-        console.log(`Loaded ${keys.length} API keys from Redis.`);
-    } catch (error) {
-        console.error("Error refreshing API keys from Redis:", error);
-    }
-}
-
 async function closeRedisConnections() {
     await redisPubSub.quit();
     await redisData.quit();
@@ -30,7 +19,6 @@ async function closeRedisConnections() {
 module.exports = {
     redisPubSub,
     redisData,
-    refreshApiKeys,
     closeRedisConnections,
     redisApiKeySetName,
     redisApiKeyChannelName,
