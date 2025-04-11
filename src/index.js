@@ -25,7 +25,7 @@ function buildServer() {
     connectRabbitMQ();
 
     // Periodic API key refresh
-    const apiKeysRefreshInterval = setInterval(() => refreshApiKeys(localApiKeys), 60000);
+    // const apiKeysRefreshInterval = setInterval(() => refreshApiKeys(localApiKeys), 60000);
     refreshApiKeys(localApiKeys);
 
     // Subscribe to Redis Pub/Sub for real-time updates
