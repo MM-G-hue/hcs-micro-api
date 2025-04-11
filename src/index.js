@@ -54,10 +54,10 @@ function buildServer() {
     // Disallow all GET requests
     app.addHook('onRequest', async (request, reply) => {
         if (request.method === 'GET') {
-            reply.code(405).send({ message: 'Method Not Allowed' });
+            reply.code(405).type('text/plain').send('Method Not Allowed');
         }
         if (request.headers['content-type'] !== 'text/plain') {
-            reply.code(415).send({ message: 'Unsupported Media Type' });
+            reply.code(415).type('text/plain').send('Unsupported Media Type');
         }
     });
 
@@ -65,7 +65,7 @@ function buildServer() {
     app.addHook('preHandler', async (request, reply) => {
         const apiKey = request.headers['x-api-key'];
         if (!apiKey || apiKey.length === 0) {
-            reply.code(401).send({ message: 'Missing API key' });
+            reply.code(401).type('text/plain').send('Missing API key');
             return;
         }
 
@@ -81,36 +81,36 @@ function buildServer() {
             }
         } catch (error) {
             console.error("Redis connection error:", error.message);
-            reply.code(500).send({ message: 'Redis Connection Error' });
+            reply.code(500).type('text/plain').send('Redis Connection Error');
         }
  
-        reply.code(401).send({ message: 'Invalid API key' });
+        reply.code(401).type('text/plain').send('Invalid API key');
     });
 
     // API endpoint
     app.post('/data', async (request, reply) => {
         if (!rabbitmqChannel) {
             console.error("RabbitMQ Channel is not available");
-            reply.code(503).send({ message: 'RabbitMQ is not available, try again later' });
+            reply.code(503).type('text/plain').send('RabbitMQ is not available, try again later');
         }
 
         if (!request.body) {
-            reply.code(400).send({ message: 'Message payload is required' });
+            reply.code(400).type('text/plain').send('Message payload is required');
             return;
         }
 
         // If needed, check for too large payload
         if (request.body.length > maxPayload) {
-            reply.code(413).send({ message: 'Payload too large' });
+            reply.code(413).type('text/plain').send('Payload too large');
             return;
         }
 
         try {
             rabbitmqChannel.sendToQueue(RabbitMQQueueName, Buffer.from(request.body), { persistent: RabbitMQDurable });
-            return { status: 'Message sent successfully' };
+            reply.code(200).type('text/plain').send('OK');
         } catch (error) {
             console.error("Failed to send message:", error.message);
-            reply.code(500).send({ message: 'Failed to send message' });
+            reply.code(500).type('text/plain').send('Failed to send message');
         }
     });
 
