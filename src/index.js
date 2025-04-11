@@ -1,5 +1,5 @@
 const fastify = require('fastify');
-const { redisPubSub, redisData, closeRedisConnections, redisApiKeySetName, redisApiKeyChannelName } = require('./redis');
+const { redisPubSub, redisData, refreshApiKeys, closeRedisConnections, redisApiKeySetName, redisApiKeyChannelName } = require('./redis');
 const { connectToRabbitMQ, closeRabbitMQ, RabbitMQQueueName, RabbitMQDurable } = require('./rabbitmq');
 
 require('dotenv').config();
@@ -9,6 +9,7 @@ const maxPayload = process.env.MAX_PAYLOAD_LENGTH || 10000;
 function buildServer() {
     const app = fastify({ logger: serverLogging });
     let rabbitmqChannel = null;
+    let localApiKeys = new Set();
 
     // The RabbitMQ connection will automatically reconnect on failure
     function connectRabbitMQ() {
@@ -23,6 +24,10 @@ function buildServer() {
     }
     connectRabbitMQ();
 
+    // Periodic API key refresh
+    // const apiKeysRefreshInterval = setInterval(() => refreshApiKeys(localApiKeys), 60000);
+    refreshApiKeys(localApiKeys);
+
     // Subscribe to Redis Pub/Sub for real-time updates
     redisPubSub.subscribe(redisApiKeyChannelName, (err, count) => {
         if (err) {
@@ -30,6 +35,20 @@ function buildServer() {
             return;
         }
         console.log(`Subscribed to ${count} Redis pub/sub channel(s)`);
+    });
+
+    // Live updates from Redis
+    redisPubSub.on('message', (channel, message) => {
+        if (channel === redisApiKeyChannelName) {
+            const { action, apiKey } = JSON.parse(message);
+            if (action === 'add') {
+                localApiKeys.add(apiKey);
+                console.log(`API key added: ${apiKey}`);
+            } else if (action === 'remove') {
+                localApiKeys.delete(apiKey);
+                console.log(`API key removed: ${apiKey}`);
+            }
+        }
     });
 
     // Disallow all GET requests
@@ -50,10 +69,14 @@ function buildServer() {
             return;
         }
 
-        // Check in Redis
+        // First, check if key is in the local cache (refreshed every minute)
+        // if (localApiKeys.has(apiKey)) return;
+
+        // Second, check if key is in Redis
         try {
             const existsInRedis = await redisData.sismember(redisApiKeySetName, apiKey);
             if (existsInRedis) {
+                // localApiKeys.add(apiKey);
                 return;
             }
         } catch (error) {
@@ -95,6 +118,7 @@ function buildServer() {
     app.addHook('onClose', async () => {
         await closeRedisConnections();
         await closeRabbitMQ();
+        clearInterval(apiKeysRefreshInterval);
     });
 
     return app;
