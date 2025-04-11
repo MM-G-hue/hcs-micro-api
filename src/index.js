@@ -9,7 +9,7 @@ const maxPayload = process.env.MAX_PAYLOAD_LENGTH || 10000;
 function buildServer() {
     const app = fastify({ logger: serverLogging });
     let rabbitmqChannel = null;
-    const localApiKeys = new Set();
+    let localApiKeys = new Set();
 
     // The RabbitMQ connection will automatically reconnect on failure
     function connectRabbitMQ() {

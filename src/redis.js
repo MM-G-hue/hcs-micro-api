@@ -14,8 +14,8 @@ const redisData = new Redis({ host: redisIP, port: redisPort, password: redisPas
 async function refreshApiKeys(localApiKeys) {
     try {
         const keys = await redisData.smembers(redisApiKeySetName);
-        localApiKeys.clear();
-        keys.forEach(key => localApiKeys.add(key));
+        // Instead of deleting old keys and inserting new, just replace the entire set
+        localApiKeys = new Set(keys);
         console.log(`Loaded ${keys.length} API keys from Redis.`);
     } catch (error) {
         console.error("Error refreshing API keys from Redis:", error);
