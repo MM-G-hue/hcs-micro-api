@@ -36,7 +36,7 @@ describe('Fastify Server', () => {
         });
 
         expect(response.statusCode).toBe(401);
-        expect(response.body).toBe('Missing API key');
+        expect(response.json()).toEqual({ message: 'Missing API key' });
     });
 
     test('Rejects request with invalid API key', async () => {
@@ -51,7 +51,7 @@ describe('Fastify Server', () => {
         });
 
         expect(response.statusCode).toBe(401);
-        expect(response.body).toBe('Missing API key');
+        expect(response.json()).toEqual({ message: 'Missing API key' });
     });
 
     test('Accepts request with valid API key', async () => {
@@ -65,7 +65,7 @@ describe('Fastify Server', () => {
         });
 
         expect(response.statusCode).toBe(200);
-        expect(response.body).toBe('OK');
+        expect(response.json()).toEqual({ status: 'Message sent successfully' });
     });
 
     test('Handles missing message payload', async () => {
@@ -76,7 +76,7 @@ describe('Fastify Server', () => {
         });
 
         expect(response.statusCode).toBe(400);
-        expect(response.body).toBe('Message payload is required');
+        expect(response.json()).toEqual({ message: 'Message payload is required' });
     });
 
     
@@ -89,7 +89,7 @@ describe('Fastify Server', () => {
         });
 
         expect(response.statusCode).toBe(405);
-        expect(response.body).toBe('Method Not Allowed');
+        expect(response.json()).toEqual({ message: 'Method Not Allowed' });
     });
 
     test('Rejects request with empty API key', async () => {
@@ -101,7 +101,7 @@ describe('Fastify Server', () => {
         });
 
         expect(response.statusCode).toBe(401);
-        expect(response.body).toBe('Missing API key');
+        expect(response.json()).toEqual({ message: 'Missing API key' });
     });
 
     test('Rejects request with too large payload', async () => {
@@ -114,7 +114,7 @@ describe('Fastify Server', () => {
         });
 
         expect(response.statusCode).toBe(413);
-        expect(response.body).toBe('Payload too large');
+        expect(response.json()).toEqual({ message: 'Payload too large' });
     });
 
     test('Handles unsupported content type', async () => {
@@ -128,7 +128,7 @@ describe('Fastify Server', () => {
         });
 
         expect(response.statusCode).toBe(415);
-        expect(response.body).toBe('Unsupported Media Type');
+        expect(response.json()).toEqual({ message: 'Unsupported Media Type' });
     });
 
     test('Handles Redis connection failure', async () => {
@@ -142,7 +142,7 @@ describe('Fastify Server', () => {
         });
 
         expect(response.statusCode).toBe(500);
-        expect(response.body).toBe('Redis Connection Error');
+        expect(response.json()).toEqual({ message: 'Redis Connection Error' });
     });
 
     test('Handles RabbitMQ connection failure', async () => {
@@ -165,6 +165,6 @@ describe('Fastify Server', () => {
         });
 
         expect(response.statusCode).toBe(503);
-        expect(response.body).toBe('RabbitMQ is not available, try again later');
+        expect(response.json()).toEqual({ message: 'RabbitMQ is not available, try again later' });
     });
 });
