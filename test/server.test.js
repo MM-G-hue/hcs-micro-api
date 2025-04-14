@@ -131,7 +131,7 @@ describe('Fastify Server', () => {
     });
 
     test('Handles Redis connection failure', async () => {
-        jest.spyOn(redisData, 'sismember').mockRejectedValue(new Error('Redis connection error'));
+        jest.spyOn(redisData, 'sismember').mockRejectedValue(new Error('Some error.'));
 
         const response = await fastify.inject({
             method: 'POST',
