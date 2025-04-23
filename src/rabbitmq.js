@@ -48,8 +48,8 @@ function connectToRabbitMQ(callback) {
             console.log("RabbitMQ Channel Created");
 
             // Dead Letter Exchange and Queue setup 
-            channel.assertExchange(RabbitMQDLX, 'direct', { durable: true });
-            channel.assertQueue(RabbitMQDLQ, { durable: true });
+            channel.assertExchange(RabbitMQDLX, 'direct', { durable: RabbitMQDurable });
+            channel.assertQueue(RabbitMQDLQ, { durable: RabbitMQDurable });
             channel.bindQueue(RabbitMQDLQ, RabbitMQDLX, RabbitMQDLXRoutingKey);
 
             // Main queue with DLX configuration
