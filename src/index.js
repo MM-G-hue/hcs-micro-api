@@ -1,5 +1,5 @@
 const fastify = require('fastify');
-const { redisPubSub, redisData, closeRedisConnections, redisApiKeySetName, redisApiKeyChannelName } = require('./redis');
+const { redisPubSub, redisData, closeRedisConnections, redisApiKeySetName, redisApiKeyChannelName, redisAdminKeySetName } = require('./redis');
 const { connectToRabbitMQ, closeRabbitMQ, RabbitMQQueueName, RabbitMQDurable } = require('./rabbitmq');
 
 require('dotenv').config();
@@ -9,6 +9,8 @@ const maxPayload = process.env.MAX_PAYLOAD_LENGTH || 10000;
 function buildServer() {
     const app = fastify({ logger: serverLogging });
     let rabbitmqChannel = null;
+    let messageCount = 0; // Counter for processed messages
+    let errorCount = 0; // Counter for errors
 
     // The RabbitMQ connection will automatically reconnect on failure
     function connectRabbitMQ() {
@@ -32,10 +34,9 @@ function buildServer() {
         console.log(`Subscribed to ${count} Redis pub/sub channel(s)`);
     });
 
-    // Disallow all GET requests
     app.addHook('onRequest', async (request, reply) => {
         if (request.method === 'GET') {
-            reply.code(405).type('text/plain').send('Method Not Allowed');
+            return;
         }
         if (request.headers['content-type'] !== 'text/plain') {
             reply.code(415).type('text/plain').send('Unsupported Media Type');
@@ -50,9 +51,12 @@ function buildServer() {
             return;
         }
 
-        // Check in Redis
         try {
-            const existsInRedis = await redisData.sismember(redisApiKeySetName, apiKey);
+            const isAdminRequest = request.method === 'GET';
+            const redisKeySet = isAdminRequest ? redisAdminKeySetName : redisApiKeySetName;
+
+            // Check in Redis
+            const existsInRedis = await redisData.sismember(redisKeySet, apiKey);
             if (existsInRedis) {
                 return;
             }
@@ -60,7 +64,7 @@ function buildServer() {
             console.error("Redis connection error:", error.message);
             reply.code(500).type('text/plain').send('Redis Connection Error');
         }
- 
+
         reply.code(401).type('text/plain').send('Invalid API key');
     });
 
@@ -68,26 +72,51 @@ function buildServer() {
     app.post('/data', async (request, reply) => {
         if (!rabbitmqChannel) {
             console.error("RabbitMQ Channel is not available");
+            errorCount++;
             reply.code(503).type('text/plain').send('RabbitMQ is not available, try again later');
+            return;
         }
 
         if (!request.body) {
+            errorCount++;
             reply.code(400).type('text/plain').send('Message payload is required');
             return;
         }
 
         // If needed, check for too large payload
         if (request.body.length > maxPayload) {
+            errorCount++;
             reply.code(413).type('text/plain').send('Payload too large');
             return;
         }
 
         try {
             rabbitmqChannel.sendToQueue(RabbitMQQueueName, Buffer.from(request.body), { persistent: RabbitMQDurable });
+            messageCount++;
             reply.code(200).type('text/plain').send('OK');
         } catch (error) {
             console.error("Failed to send message:", error.message);
+            errorCount++;
             reply.code(500).type('text/plain').send('Failed to send message');
+        }
+    });
+
+    // API endpoint for server statistics
+    app.get('/stats', async (request, reply) => {
+        try {
+            const stats = {
+                uptime: process.uptime(),
+                memoryUsage: process.memoryUsage(),
+                redisConnected: redisData.status === 'ready',
+                rabbitMQConnected: !!rabbitmqChannel,
+                messagesProcessed: messageCount,
+                errors: errorCount, // Include error count
+            };
+            reply.code(200).send(stats);
+        } catch (error) {
+            console.error("Failed to retrieve server stats:", error.message);
+            errorCount++;
+            reply.code(500).type('text/plain').send('Failed to retrieve server stats');
         }
     });
 
