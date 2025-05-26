@@ -108,7 +108,8 @@ function buildServer() {
             const queueInfo = await rabbitmqChannel.checkQueue(RabbitMQQueueName);
             const dlqInfo = await rabbitmqChannel.checkQueue(process.env.RABBITMQ_DLQ || 'dlq');
 
-            console.log(queueInfo, dlqInfo)
+            console.log("Queue info")
+            console.log(queueInfo)
 
             const stats = {
                 uptime: process.uptime(),
