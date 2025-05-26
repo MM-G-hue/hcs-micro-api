@@ -104,13 +104,20 @@ function buildServer() {
     // API endpoint for server statistics
     app.get('/stats', async (request, reply) => {
         try {
+            // Get RabbitMQ queue depth
+            const queueInfo = await rabbitmqChannel.checkQueue(RabbitMQQueueName);
+            const dlqInfo = await rabbitmqChannel.checkQueue(process.env.RABBITMQ_DLQ || 'dlq');
+
             const stats = {
                 uptime: process.uptime(),
                 memoryUsage: process.memoryUsage(),
+                cpuUsage: process.cpuUsage(),
                 redisConnected: redisData.status === 'ready',
                 rabbitMQConnected: !!rabbitmqChannel,
                 messagesProcessed: messageCount,
-                errors: errorCount, // Include error count
+                errors: errorCount,
+                queueDepth: queueInfo.messageCount,
+                deadLetterQueueDepth: dlqInfo.messageCount
             };
             reply.code(200).send(stats);
         } catch (error) {
