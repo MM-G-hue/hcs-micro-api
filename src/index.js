@@ -6,6 +6,15 @@ require('dotenv').config();
 const serverLogging = process.env.SERVER_LOGGING === 'true';
 const maxPayload = process.env.MAX_PAYLOAD_LENGTH || 10000;
 
+function checkQueueAsync(channel, queueName) {
+    return new Promise((resolve, reject) => {
+        channel.checkQueue(queueName, (err, info) => {
+            if (err) return reject(err);
+            resolve(info);
+        });
+    });
+}
+
 function buildServer() {
     const app = fastify({ logger: serverLogging });
     let rabbitmqChannel = null;
@@ -104,12 +113,9 @@ function buildServer() {
     // API endpoint for server statistics
     app.get('/stats', async (request, reply) => {
         try {
-            // Get RabbitMQ queue depth
-            const queueInfo = await rabbitmqChannel.checkQueue(RabbitMQQueueName);
-            const dlqInfo = await rabbitmqChannel.checkQueue(process.env.RABBITMQ_DLQ || 'dlq');
-
-            console.log("Queue info")
-            console.log("Queue info:", JSON.stringify(queueInfo, null, 2));
+            // Get RabbitMQ queue depth using promise-based helper
+            const queueInfo = await checkQueueAsync(rabbitmqChannel, RabbitMQQueueName);
+            const dlqInfo = await checkQueueAsync(rabbitmqChannel, process.env.RABBITMQ_DLQ || 'dlq');
 
             const stats = {
                 uptime: process.uptime(),
