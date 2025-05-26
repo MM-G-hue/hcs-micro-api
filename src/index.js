@@ -125,8 +125,8 @@ function buildServer() {
                 rabbitMQConnected: !!rabbitmqChannel,
                 messagesProcessed: messageCount,
                 errors: errorCount,
-                queueDepth: queueInfo.messageCount,
-                deadLetterQueueDepth: dlqInfo.messageCount
+                queueDepth: queueInfo,
+                deadLetterQueueDepth: dlqInfo
             };
             reply.code(200).send(stats);
         } catch (error) {
