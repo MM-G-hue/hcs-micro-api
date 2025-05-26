@@ -108,10 +108,12 @@ function buildServer() {
             const queueInfo = await rabbitmqChannel.checkQueue(RabbitMQQueueName);
             const dlqInfo = await rabbitmqChannel.checkQueue(process.env.RABBITMQ_DLQ || 'dlq');
 
+            console.log(queueInfo, dlqInfo)
+
             const stats = {
                 uptime: process.uptime(),
                 memoryUsage: process.memoryUsage(),
-                cpuUsage: process.cpuUsage(),
+                availableMemory: process.availableMemory(),
                 redisConnected: redisData.status === 'ready',
                 rabbitMQConnected: !!rabbitmqChannel,
                 messagesProcessed: messageCount,
