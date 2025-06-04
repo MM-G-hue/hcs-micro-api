@@ -103,6 +103,7 @@ function buildServer() {
             rabbitmqChannel.sendToQueue(RabbitMQQueueName, Buffer.from(request.body), { persistent: RabbitMQDurable });
             messageCount++;
             reply.code(200).type('text/plain').send('OK');
+            console.log("Received message:", request.body);
         } catch (error) {
             console.error("Failed to send message:", error.message);
             errorCount++;
