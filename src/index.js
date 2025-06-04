@@ -44,7 +44,6 @@ function buildServer() {
     });
 
     app.addHook('onRequest', async (request, reply) => {
-        console.log(`Received request, timestamp: ${new Date().toISOString()}`);
         if (request.method === 'GET') {
             return;
         }
@@ -122,7 +121,6 @@ function buildServer() {
         }
 
         try {
-            console.log("Sending message", payloadToSend);
             rabbitmqChannel.sendToQueue(RabbitMQQueueName, Buffer.from(payloadToSend), { persistent: RabbitMQDurable });
             messageCount++;
             reply.code(200).type('text/plain').send('OK');

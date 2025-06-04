@@ -162,7 +162,7 @@ describe('Fastify Server', () => {
         const response = await fastify.inject({
             method: 'POST',
             url: '/data',
-            headers: { 'x-api-key': 'valid-api-key', 'Content-Type': 'text/json' },
+            headers: { 'x-api-key': 'valid-api-key', 'Content-Type': 'image/png' },
             payload: 'Test',
         });
 
