@@ -73,7 +73,7 @@ function buildServer() {
             console.error("Redis connection error:", error.message);
             reply.code(500).type('text/plain').send('Redis Connection Error');
         }
-
+        console.log("Invalid API key:", apiKey);
         reply.code(401).type('text/plain').send('Invalid API key');
     });
 
