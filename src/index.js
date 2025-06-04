@@ -100,6 +100,7 @@ function buildServer() {
         }
 
         try {
+            console.log(request.body);
             rabbitmqChannel.sendToQueue(RabbitMQQueueName, Buffer.from(request.body), { persistent: RabbitMQDurable });
             messageCount++;
             reply.code(200).type('text/plain').send('OK');
