@@ -1,7 +1,14 @@
 const mockChannel = {
     assertQueue: jest.fn().mockResolvedValue(),
+    assertExchange: jest.fn().mockResolvedValue(),
+    bindQueue: jest.fn().mockResolvedValue(),
+    checkQueue: jest.fn().mockImplementation((queue, callback) => {
+        console.log(`Mock RabbitMQ Check Queue: ${queue}`);
+        // Simulate a successful check queue operation
+        callback(null, { queue: queue, messageCount: 0 });
+    }),
     sendToQueue: jest.fn().mockImplementation((queue, message, options) => {
-        // console.log(`Message sent to ${queue}:`, message.toString());
+        // Optionally do something with the message
     }),
     close: jest.fn().mockResolvedValue(),
 };
