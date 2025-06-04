@@ -77,6 +77,22 @@ function buildServer() {
         reply.code(401).type('text/plain').send('Invalid API key');
     });
 
+    function convertPayload(request) {
+        const apiKey = request.headers['x-api-key'];
+        const timestamp = Math.floor(Date.now() / 1000);
+
+        if (request.headers['content-type'] === 'application/json' && typeof request.body === 'object') {
+            return Object.entries(request.body)
+                .map(([measurement, value]) =>
+                    `sensors,key=${apiKey} ${measurement}=${value} ${timestamp}`
+                )
+                .join('\n');
+        } else if (request.headers['content-type'] === 'text/plain' && typeof request.body === 'string') {
+            return request.body;
+        }
+        return null; // Not recognized
+    }
+
     // API endpoint
     app.post('/data', async (request, reply) => {
         if (!rabbitmqChannel) {
@@ -92,19 +108,23 @@ function buildServer() {
             return;
         }
 
-        // If needed, check for too large payload
-        if (request.body.length > maxPayload) {
+        let payloadToSend = convertPayload(request);
+        if (payloadToSend === null) {
+            reply.code(415).type('text/plain').send('Unsupported Media Type');
+            return;
+        }
+
+        if (payloadToSend.length > maxPayload) {
             errorCount++;
             reply.code(413).type('text/plain').send('Payload too large');
             return;
         }
 
         try {
-            console.log(request.body);
-            rabbitmqChannel.sendToQueue(RabbitMQQueueName, Buffer.from(request.body), { persistent: RabbitMQDurable });
+            console.log("Sending message", payloadToSend);
+            rabbitmqChannel.sendToQueue(RabbitMQQueueName, Buffer.from(payloadToSend), { persistent: RabbitMQDurable });
             messageCount++;
             reply.code(200).type('text/plain').send('OK');
-            console.log("Received message:", request.body);
         } catch (error) {
             console.error("Failed to send message:", error.message);
             errorCount++;
