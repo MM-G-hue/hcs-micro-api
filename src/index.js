@@ -47,7 +47,7 @@ function buildServer() {
         if (request.method === 'GET') {
             return;
         }
-        if (request.headers['content-type'] !== 'text/plain') {
+        if (request.headers['content-type'] !== 'text/plain' || request.headers['content-type'] !== 'application/json') {
             reply.code(415).type('text/plain').send('Unsupported Media Type');
         }
     });
