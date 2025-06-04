@@ -44,6 +44,7 @@ function buildServer() {
     });
 
     app.addHook('onRequest', async (request, reply) => {
+        console.log(`Received request, timestamp: ${new Date().toISOString()}`);
         if (request.method === 'GET') {
             return;
         }
