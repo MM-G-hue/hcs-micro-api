@@ -6,6 +6,7 @@ const RabbitMQQueueName = process.env.RABBITMQ_QUEUE_NAME;
 const RabbitMQDurable = process.env.RABBITMQ_DURABLE === 'true';
 const RabbitMQUsername = process.env.RABBITMQ_USERNAME;
 const RabbitMQPassword = process.env.RABBITMQ_PASSWORD;
+const backoffDelay = process.env.RABBITMQ_BACKOFF_DELAY || 5000;
 
 const RabbitMQDLX = process.env.RABBITMQ_DLX || 'dlx';
 const RabbitMQDLQ = process.env.RABBITMQ_DLQ || 'dlq';
@@ -20,7 +21,8 @@ function connectToRabbitMQ(callback) {
     amqp.connect(`amqp://${RabbitMQUsername}:${RabbitMQPassword}@${RabbitMQIP}`, (error, connection) => {
         if (error) {
             console.error("RabbitMQ Connection Error:", error.message);
-            setTimeout(() => connectToRabbitMQ(callback), 5000);
+            // If connection fails, retry after x seconds, exponential backoff might be more desirable in the future
+            setTimeout(() => connectToRabbitMQ(callback), backoffDelay);
             return;
         }
 
@@ -28,14 +30,15 @@ function connectToRabbitMQ(callback) {
 
         connection.on("error", err => {
             console.error("RabbitMQ Connection Error:", err.message);
+            // Only reconnect if the connection is not closing intentionally
             if (err.message !== "Connection closing") {
-                setTimeout(() => connectToRabbitMQ(callback), 5000);
+                setTimeout(() => connectToRabbitMQ(callback), backoffDelay);
             }
         });
 
         connection.on("close", () => {
             console.warn("RabbitMQ Connection Closed. Reconnecting...");
-            setTimeout(() => connectToRabbitMQ(callback), 5000);
+            setTimeout(() => connectToRabbitMQ(callback), backoffDelay);
         });
 
         console.log("Calling createChannel...");
@@ -47,12 +50,13 @@ function connectToRabbitMQ(callback) {
 
             console.log("RabbitMQ Channel Created");
 
-            // Dead Letter Exchange and Queue setup 
+            // Setup Dead Letter Exchange (DLX) and Dead Letter Queue (DLQ).
+            // Messages that cannot be processed are routed to the DLQ via the DLX.
             channel.assertExchange(RabbitMQDLX, 'direct', { durable: RabbitMQDurable });
             channel.assertQueue(RabbitMQDLQ, { durable: RabbitMQDurable });
             channel.bindQueue(RabbitMQDLQ, RabbitMQDLX, RabbitMQDLXRoutingKey);
 
-            // Main queue with DLX configuration
+            // Main queue is configured to use the DLX for failed messages.
             channel.assertQueue(RabbitMQQueueName, {
                 durable: RabbitMQDurable,
                 arguments: {
@@ -71,6 +75,7 @@ function connectToRabbitMQ(callback) {
 }
 
 async function closeRabbitMQ() {
+    // Close channel and connection if they exist.
     if (rabbitmqChannel) await rabbitmqChannel.close();
     if (rabbitmqConnection) await rabbitmqConnection.close();
 }

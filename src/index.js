@@ -7,6 +7,7 @@ const serverLogging = process.env.SERVER_LOGGING === 'true';
 const maxPayload = process.env.MAX_PAYLOAD_LENGTH || 10000;
 
 function checkQueueAsync(channel, queueName) {
+    // Promisify the callback-based checkQueue for easier async/await usage.
     return new Promise((resolve, reject) => {
         channel.checkQueue(queueName, (err, info) => {
             if (err) return reject(err);
@@ -21,7 +22,8 @@ function buildServer() {
     let messageCount = 0; // Counter for processed messages
     let errorCount = 0; // Counter for errors
 
-    // The RabbitMQ connection will automatically reconnect on failure
+    // Establish and maintain RabbitMQ connection/channel.
+    // If the connection drops, the reconnect logic in rabbitmq.js will handle retries.
     function connectRabbitMQ() {
         connectToRabbitMQ((error, result) => {
             if (error) {
@@ -34,7 +36,8 @@ function buildServer() {
     }
     connectRabbitMQ();
 
-    // Subscribe to Redis Pub/Sub for real-time updates
+    // Subscribe to Redis Pub/Sub for real-time updates (e.g., API key changes).
+    // This client is only used for pub/sub and not for regular Redis commands.
     redisPubSub.subscribe(redisApiKeyChannelName, (err, count) => {
         if (err) {
             console.error("Error subscribing to Redis channel:", err);
@@ -43,6 +46,8 @@ function buildServer() {
         console.log(`Subscribed to ${count} Redis pub/sub channel(s)`);
     });
 
+    // Fastify hook to check Content-Type for non-GET requests.
+    // Only allow 'text/plain' or 'application/json' for POST/PUT requests.
     app.addHook('onRequest', async (request, reply) => {
         if (request.method === 'GET') {
             return;
@@ -52,7 +57,8 @@ function buildServer() {
         }
     });
 
-    // Authentication hook
+    // Authentication hook: checks for a valid API key in Redis before handling the request.
+    // GET requests use the admin key set, others use the regular API key set.
     app.addHook('preHandler', async (request, reply) => {
         const apiKey = request.headers['x-api-key'];
         if (!apiKey || apiKey.length === 0) {
@@ -170,8 +176,10 @@ function buildServer() {
 const start = async () => {
     const app = buildServer();
     try {
+        // Listen on all network interfaces (0.0.0.0) so the server is accessible from outside.
         await app.listen({ port: 3001, host: '0.0.0.0' });
     } catch (err) {
+        // If Fastify fails to start, log the error and exit the process.
         console.error(err);
         process.exit(1);
     }
@@ -179,4 +187,5 @@ const start = async () => {
 
 start();
 
+// Export buildServer for testing
 module.exports = { buildServer };
